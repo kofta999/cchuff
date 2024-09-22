@@ -7,7 +7,7 @@ pub struct HuffNode {
 }
 use std::collections::HashMap;
 
-pub fn build(input: &str) -> Vec<HuffNode> {
+pub fn build(input: &str) -> HuffNode {
     generate_tree(generate_queue(calculate_frequency(input)))
 }
 
@@ -27,7 +27,7 @@ fn generate_queue(map: HashMap<char, usize>) -> Vec<HuffNode> {
     vec
 }
 
-fn generate_tree(mut nodes: Vec<HuffNode>) -> Vec<HuffNode> {
+fn generate_tree(mut nodes: Vec<HuffNode>) -> HuffNode {
     while nodes.len() > 1 {
         let curr = nodes.remove(0);
         let next = nodes.remove(0);
@@ -41,25 +41,12 @@ fn generate_tree(mut nodes: Vec<HuffNode>) -> Vec<HuffNode> {
 
         nodes.push(node);
 
-        balance(nodes.len() - 1, &mut nodes);
+        nodes.sort_by_key(|v| v.freq);
     }
 
-    nodes
-}
+    dbg!(&nodes);
 
-fn balance(idx: usize, nodes: &mut Vec<HuffNode>) {
-    if idx == 0 {
-        return;
-    };
-
-    let p = (idx - 1) / 2;
-    let pv = &nodes[p];
-    let v = &nodes[idx];
-
-    if pv.freq > v.freq {
-        nodes.swap(idx, p);
-        balance(p, nodes)
-    }
+    nodes.remove(0)
 }
 
 fn calculate_frequency(input: &str) -> HashMap<char, usize> {
@@ -74,6 +61,31 @@ fn calculate_frequency(input: &str) -> HashMap<char, usize> {
     }
 
     map
+}
+
+pub fn generate_coding_map(head: HuffNode) -> HashMap<char, String> {
+    let mut map: HashMap<char, String> = HashMap::new();
+
+    dfs(Some(Box::new(head)), "", &mut map);
+
+    println!("{map:?}");
+
+    map
+}
+
+fn dfs(p: Option<Box<HuffNode>>, s: &str, map: &mut HashMap<char, String>) {
+    match p {
+        None => (),
+        Some(p) => {
+            if let Some(v) = p.value {
+                map.insert(v, s.to_string());
+            }
+
+            dfs(p.left, &format!("{}0", s), map);
+            println!("{s} {:?} {}", p.value, p.freq);
+            dfs(p.right, &format!("{}1", s), map);
+        }
+    }
 }
 
 #[cfg(test)]
@@ -97,60 +109,66 @@ mod tests {
         assert_eq!(calculate_frequency(string), map)
     }
 
-    // #[test]
-    // fn test_build_tree() {
-    //     let vec = vec![
-    //         HuffNode {
-    //             freq: 2,
-    //             value: Some('Z'),
-    //             left: None,
-    //             right: None,
-    //         },
-    //         HuffNode {
-    //             freq: 7,
-    //             value: Some('K'),
-    //             left: None,
-    //             right: None,
-    //         },
-    //         HuffNode {
-    //             freq: 24,
-    //             value: Some('M'),
-    //             left: None,
-    //             right: None,
-    //         },
-    //         HuffNode {
-    //             freq: 32,
-    //             value: Some('C'),
-    //             left: None,
-    //             right: None,
-    //         },
-    //         HuffNode {
-    //             freq: 37,
-    //             value: Some('U'),
-    //             left: None,
-    //             right: None,
-    //         },
-    //         HuffNode {
-    //             freq: 42,
-    //             value: Some('D'),
-    //             left: None,
-    //             right: None,
-    //         },
-    //         HuffNode {
-    //             freq: 42,
-    //             value: Some('L'),
-    //             left: None,
-    //             right: None,
-    //         },
-    //         HuffNode {
-    //             freq: 120,
-    //             value: Some('E'),
-    //             left: None,
-    //             right: None,
-    //         },
-    //     ];
-    //     let res = build_tree(vec);
+    #[test]
+    fn test_code_map() {
+        let mut vec = vec![
+            HuffNode {
+                freq: 32,
+                value: Some('C'),
+                left: None,
+                right: None,
+            },
+            HuffNode {
+                freq: 42,
+                value: Some('D'),
+                left: None,
+                right: None,
+            },
+            HuffNode {
+                freq: 120,
+                value: Some('E'),
+                left: None,
+                right: None,
+            },
+            HuffNode {
+                freq: 7,
+                value: Some('K'),
+                left: None,
+                right: None,
+            },
+            HuffNode {
+                freq: 42,
+                value: Some('L'),
+                left: None,
+                right: None,
+            },
+            HuffNode {
+                freq: 24,
+                value: Some('M'),
+                left: None,
+                right: None,
+            },
+            HuffNode {
+                freq: 37,
+                value: Some('U'),
+                left: None,
+                right: None,
+            },
+            HuffNode {
+                freq: 2,
+                value: Some('Z'),
+                left: None,
+                right: None,
+            },
+        ];
+        vec.sort_by_key(|node| node.freq);
 
-    //     dbg!(res);
-    // }
+        let res = generate_tree(vec);
+        println!("{res:?}");
+        let map = generate_coding_map(res);
+
+        dbg!(map);
+
+        panic!()
+    }
 }
