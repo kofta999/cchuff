@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 #[derive(Debug)]
 pub struct HuffNode {
     value: Option<char>,
@@ -5,10 +7,9 @@ pub struct HuffNode {
     left: Option<Box<HuffNode>>,
     right: Option<Box<HuffNode>>,
 }
-use std::collections::HashMap;
 
-pub fn build(input: &str) -> HuffNode {
-    generate_tree(generate_queue(calculate_frequency(input)))
+pub fn build(input: &str) -> HashMap<char, String> {
+    generate_coding_map(generate_tree(generate_queue(calculate_frequency(input))))
 }
 
 fn generate_queue(map: HashMap<char, usize>) -> Vec<HuffNode> {
@@ -61,7 +62,7 @@ fn calculate_frequency(input: &str) -> HashMap<char, usize> {
     map
 }
 
-pub fn generate_coding_map(head: HuffNode) -> HashMap<char, String> {
+fn generate_coding_map(head: HuffNode) -> HashMap<char, String> {
     let mut map: HashMap<char, String> = HashMap::new();
 
     dfs(Some(Box::new(head)), "", &mut map);
