@@ -7,11 +7,25 @@ use std::{
 
 fn write_header(file_path: &str, code_map: &HashMap<char, String>) -> Result<File, Box<dyn Error>> {
     let mut file = fs::File::create(file_path)?;
-    code_map.iter().for_each(|(k, v)| {
-        file.write_all(format!("{v}({k})").as_bytes()).unwrap();
-    });
+    file.write_all(b"CCHF")?;
+    file.write_all(&[1])?;
+    file.write_all(&(code_map.len() as u16).to_le_bytes())?;
 
-    file.write_all("\n".as_bytes())?;
+    for (&ch, code) in code_map {
+        file.write_all(&(ch as u32).to_le_bytes())?;
+        file.write_all(&(code.len() as u16).to_le_bytes())?;
+
+        let mut remaining_bits = code.len();
+        let code_bits = code
+            .chars()
+            .fold(0u64, |acc, bit| acc << 1 | (bit == '1') as u64);
+
+        while remaining_bits > 0 {
+            let bytes_to_write = std::cmp::min(remaining_bits, 8);
+            file.write_all(&[(code_bits >> (remaining_bits - bytes_to_write)) as u8])?;
+            remaining_bits -= bytes_to_write;
+        }
+    }
 
     Ok(file)
 }
