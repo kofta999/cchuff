@@ -44,8 +44,6 @@ fn generate_tree(mut nodes: Vec<HuffNode>) -> HuffNode {
         nodes.sort_by_key(|v| v.freq);
     }
 
-    dbg!(&nodes);
-
     nodes.remove(0)
 }
 
@@ -67,9 +65,6 @@ pub fn generate_coding_map(head: HuffNode) -> HashMap<char, String> {
     let mut map: HashMap<char, String> = HashMap::new();
 
     dfs(Some(Box::new(head)), "", &mut map);
-
-    println!("{map:?}");
-
     map
 }
 
@@ -82,7 +77,6 @@ fn dfs(p: Option<Box<HuffNode>>, s: &str, map: &mut HashMap<char, String>) {
             }
 
             dfs(p.left, &format!("{}0", s), map);
-            println!("{s} {:?} {}", p.value, p.freq);
             dfs(p.right, &format!("{}1", s), map);
         }
     }
@@ -164,10 +158,7 @@ mod tests {
         vec.sort_by_key(|node| node.freq);
 
         let res = generate_tree(vec);
-        println!("{res:?}");
         let map = generate_coding_map(res);
-
-        dbg!(map);
 
         panic!()
     }

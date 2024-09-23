@@ -7,8 +7,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     args.next();
 
     match args.next() {
-        Some(path) => run(path)?,
-        None => panic!("File path required"),
+        Some(in_path) => match args.next() {
+            Some(out_path) => run(&in_path, &out_path)?,
+            None => panic!("Output file path required"),
+        },
+        None => panic!("Input file path required"),
     }
 
     Ok(())
