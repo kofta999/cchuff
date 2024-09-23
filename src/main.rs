@@ -8,8 +8,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     match args.next() {
         Some(in_path) => match args.next() {
-            Some(out_path) => run(&in_path, &out_path)?,
-            None => panic!("Output file path required"),
+            Some(out_path) => run(&in_path, Some(&out_path))?,
+            None => run(&in_path, None)?,
         },
         None => panic!("Input file path required"),
     }
