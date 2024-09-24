@@ -45,9 +45,9 @@ fn write_data<W: Write>(
         }
     }
 
-    while bitvec.len() % 8 != 0 {
-        bitvec.push(false);
-    }
+    // Calculate and write total byte size
+    let total_bytes = (bitvec.len() + 7) / 8; // Round up to nearest byte
+    writer.write_all(&(total_bytes as u32).to_le_bytes())?;
 
     writer.write_all(bitvec.as_raw_slice())?;
 
@@ -67,7 +67,6 @@ pub fn write<W: Write>(
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
     use std::io::Cursor;
 
@@ -101,14 +100,12 @@ mod tests {
         write_data(&mut buffer, &map, input).unwrap();
 
         let written = buffer.into_inner();
-        println!("Written bytes: {:?}", written);
-        for (i, &byte) in written.iter().enumerate() {
-            println!("Byte {}: {:08b}", i, byte);
-        }
-
-        assert_eq!(written.len(), 2);
-        assert_eq!(written[0], 0b01011011);
-        assert_eq!(written[1], 0b10000000);
+        assert_eq!(written.len(), 6); // 4 bytes for length + 1 byte of data
+        assert_eq!(
+            u32::from_le_bytes([written[0], written[1], written[2], written[3]]),
+            2
+        ); // total bytes
+        assert_eq!(written[4], 0b01011011); // encoded data
     }
 
     #[test]
@@ -119,7 +116,7 @@ mod tests {
         write(&mut buffer, input, &map).unwrap();
 
         let written = buffer.into_inner();
-        assert!(written.len() > 8); // Header + data
+        assert!(written.len() > 9); // Header + data length + data
         assert_eq!(&written[0..4], b"CCHF");
         // Further checks can be added
     }
@@ -132,21 +129,21 @@ mod tests {
         write(&mut buffer, input, &map).unwrap();
 
         let written = buffer.into_inner();
-        assert_eq!(written.len(), 7); // CCHF + version + map length (0)
+        assert_eq!(written.len(), 11); // CCHF + version + map length (0) + data length (0)
     }
 
-    // #[test]
-    // fn test_write_single_char() {
-    //     let mut buffer = Cursor::new(Vec::new());
-    //     let mut map = HashMap::new();
-    //     map.insert('a', "0".to_string());
-    //     let input = "a";
-    //     write(&mut buffer, input, &map).unwrap();
+    #[test]
+    fn test_write_single_char() {
+        let mut buffer = Cursor::new(Vec::new());
+        let mut map = HashMap::new();
+        map.insert('a', "0".to_string());
+        let input = "a";
+        write(&mut buffer, input, &map).unwrap();
 
-    //     let written = buffer.into_inner();
-    //     assert!(written.len() > 8);
-    //     assert_eq!(written.last(), Some(&0b10000000)); // '0' padded to byte
-    // }
+        let written = buffer.into_inner();
+        assert!(written.len() > 11);
+        assert_eq!(written[written.len() - 1], 0b10000000); // '0' padded to byte
+    }
 
     #[test]
     fn test_write_with_newline() {
@@ -157,7 +154,7 @@ mod tests {
         write(&mut buffer, input, &map).unwrap();
 
         let written = buffer.into_inner();
-        assert!(written.len() > 8);
+        assert!(written.len() > 11);
         // Check that the newline is encoded correctly
     }
 
@@ -165,10 +162,23 @@ mod tests {
     fn test_write_long_input() {
         let mut buffer = Cursor::new(Vec::new());
         let map = create_test_map();
-        let input = "abcdabcdabcd"; // 24 bits, should be 3 bytes
+        let input = "abcdabcdabcd"; // 27 bits, should be 4 bytes
         write(&mut buffer, input, &map).unwrap();
 
         let written = buffer.into_inner();
-        assert!(written.len() > 11); // Header + 3 bytes of data
+        assert!(written.len() > 15); // Header + data length + 4 bytes of data
+                                     // Check the data length is 4
+                                     
+                                     
+        assert_eq!(
+            u32::from_le_bytes([written[11], written[12], written[13], written[14]]),
+            4
+        );
+
+        // Optionally, check the actual encoded data
+        assert_eq!(written[15], 0b01011011);
+        assert_eq!(written[16], 0b10101101);
+        assert_eq!(written[17], 0b11010110);
+        assert_eq!(written[18], 0b11100000); // Last byte with padding
     }
 }

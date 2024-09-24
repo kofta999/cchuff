@@ -10,7 +10,9 @@ pub fn run(input_path: &str, out_path: Option<&str>) -> Result<(), Box<dyn Error
         }
         None => {
             let input = fs::read(input_path)?;
-            decoder::decode(input)?;
+            let output = decoder::decode(input)?;
+
+            fs::write(&format!("{input_path}_ext.txt"), output)?;
         }
     }
 
