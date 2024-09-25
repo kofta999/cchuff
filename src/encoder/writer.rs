@@ -1,4 +1,4 @@
-use std::{collections::HashMap, error::Error, io::Write};
+use std::{collections::HashMap, error::Error, io::Write, time::Instant};
 
 use bitvec::prelude::*;
 
@@ -168,8 +168,7 @@ mod tests {
         let written = buffer.into_inner();
         assert!(written.len() > 15); // Header + data length + 4 bytes of data
                                      // Check the data length is 4
-                                     
-                                     
+
         assert_eq!(
             u32::from_le_bytes([written[11], written[12], written[13], written[14]]),
             4

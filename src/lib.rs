@@ -1,5 +1,5 @@
 use std::{error::Error, fs};
-mod decoder;
+pub mod decoder;
 mod encoder;
 
 pub fn run(input_path: &str, out_path: Option<&str>) -> Result<(), Box<dyn Error>> {

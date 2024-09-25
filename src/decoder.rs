@@ -1,19 +1,26 @@
 use bitvec::prelude::*;
-use std::{
-    collections::HashMap,
-    error::Error,
-    io::{Cursor, Read},
-};
+use std::{collections::HashMap, error::Error, io::Read, time::Instant};
 
 pub fn decode(input: Vec<u8>) -> Result<String, Box<dyn Error>> {
-    let mut reader = Cursor::new(input);
-    let map = decode_header(&mut reader)?;
-    let content = decode_content(&mut reader, &map)?;
+    let start = Instant::now();
+    let reader = BitVec::<u8, Msb0>::from_vec(input);
+    let (map, reader) = decode_header(&reader)?;
+    let header_duration = start.elapsed();
+    println!("Header decoding took: {:?}", header_duration);
+
+    let content_start = Instant::now();
+    let content = decode_content(reader, &map)?;
+    let content_duration = content_start.elapsed();
+
+    println!("Content decoding took: {:?}", content_duration);
+    println!("Total decoding took: {:?}", start.elapsed());
 
     Ok(content)
 }
 
-fn decode_header(reader: &mut impl Read) -> Result<HashMap<String, char>, std::io::Error> {
+type DecodeResult<'a> = (HashMap<String, char>, &'a BitSlice<u8, Msb0>);
+
+fn decode_header(mut reader: &BitSlice<u8, Msb0>) -> Result<DecodeResult, std::io::Error> {
     let mut map: HashMap<String, char> = HashMap::new();
 
     let mut signature = [0u8; 4];
@@ -37,8 +44,9 @@ fn decode_header(reader: &mut impl Read) -> Result<HashMap<String, char>, std::i
     let map_length = u16::from_le_bytes(map_length);
 
     // Read map
+    let mut char = [0u8; 4];
+
     for _ in 0..map_length {
-        let mut char = [0u8; 4];
         reader.read_exact(&mut char)?;
         let char = char::from_u32(u32::from_le_bytes(char)).expect("Invalid char");
 
@@ -68,11 +76,11 @@ fn decode_header(reader: &mut impl Read) -> Result<HashMap<String, char>, std::i
         map.insert(s, char);
     }
 
-    Ok(map)
+    Ok((map, reader))
 }
 
 fn decode_content(
-    reader: &mut impl Read,
+    mut reader: &BitSlice<u8, Msb0>,
     map: &HashMap<String, char>,
 ) -> Result<String, std::io::Error> {
     let mut result = String::new();
@@ -81,13 +89,13 @@ fn decode_content(
     reader.read_exact(&mut total_bytes)?;
     let total_bytes = u32::from_le_bytes(total_bytes);
 
-    let mut buffer = vec![0u8; total_bytes as usize];
-    reader.read_exact(&mut buffer)?;
-
-    let bitvec = BitVec::<u8, Msb0>::from_vec(buffer);
     let mut code = BitVec::<u8, Msb0>::new();
+    let mut iter = reader.iter();
 
-    for bit in bitvec.iter() {
+    for _ in 0..(total_bytes * 8) {
+        // let start = Instant::now();
+        let bit = iter.next().expect("Should not happen");
+
         code.push(*bit);
         let s: String = code.iter().map(|b| if *b { '1' } else { '0' }).collect();
 
@@ -96,13 +104,16 @@ fn decode_content(
             code.clear();
         }
 
-        if code.len() > map.keys().map(|s| s.len()).max().unwrap_or(0) {
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::InvalidData,
-                "Invalid Huffman code",
-            ));
-        }
+        // println!("Clear: {:?}", start.elapsed());
     }
+
+    // TODO: fix that check (total_bytes is the compressed size)
+    // if result.bytes().len() != total_bytes as usize {
+    //     return Err(std::io::Error::new(
+    //         std::io::ErrorKind::InvalidData,
+    //         "Input length does not match output length",
+    //     ));
+    // }
 
     Ok(result)
 }
