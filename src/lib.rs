@@ -1,6 +1,7 @@
 use std::{error::Error, fs};
 pub mod decoder;
 mod encoder;
+mod shared;
 
 pub fn run(input_path: &str, out_path: Option<&str>) -> Result<(), Box<dyn Error>> {
     match out_path {
