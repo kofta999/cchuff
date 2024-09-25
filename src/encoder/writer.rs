@@ -1,5 +1,5 @@
 use bitvec::prelude::*;
-use std::{collections::BTreeMap, error::Error, io::Write};
+use std::{collections::BTreeMap, error::Error, io::Write, time::Instant};
 
 pub fn write<W: Write>(
     writer: &mut W,
@@ -31,6 +31,7 @@ fn write_data<W: Write>(
 ) -> Result<(), Box<dyn Error>> {
     let mut bitvec = BitVec::<u8, Msb0>::new();
 
+    let inst = Instant::now();
     for char in input.chars() {
         let code = code_map.get(&char).unwrap();
 
@@ -39,8 +40,8 @@ fn write_data<W: Write>(
         }
     }
 
+    dbg!(inst.elapsed());
     // Calculate and write total byte size
-    // (bitvec.len() + 7) / 8; // Round up to nearest byte
     writer.write_all(&(bitvec.len() as u32).to_le_bytes())?;
     writer.write_all(bitvec.as_raw_slice())?;
 

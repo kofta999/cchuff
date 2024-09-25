@@ -25,11 +25,8 @@ fn calculate_frequency(input: &str) -> BTreeMap<char, u32> {
 fn generate_codemap_and_bittree(head: HuffNode) -> (BTreeMap<char, String>, BitVec<u8, Msb0>) {
     let mut map: BTreeMap<char, String> = BTreeMap::new();
     let mut bitvec = BitVec::<u8, Msb0>::new();
-    
-    dbg!(&head);
 
     dfs(Some(Box::new(head)), "", &mut map, &mut bitvec);
-    
 
     (map, bitvec)
 }
